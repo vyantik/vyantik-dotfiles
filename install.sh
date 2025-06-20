@@ -62,6 +62,14 @@ install_dependencies() {
         "python"
         "python-pip"
         "go"
+        "ttf-font-awesome"
+        "otf-font-awesome"
+        "ttf-jetbrains-mono"
+        "pkgfile"
+        "ttf-dejavu"
+        "powerline-fonts"
+        "nwg-look"
+        "papirus-icon-theme"
     )
     
     # Проверяем, какие пакеты уже установлены
@@ -94,7 +102,7 @@ install_dependencies() {
     fi
     
     # Установка AUR пакетов
-    local aur_packages=("pokeget")
+    local aur_packages=("pokeget" "hyprpicker" "otf-codenewroman-nerd" "pywal")
     for package in "${aur_packages[@]}"; do
         if ! yay -Q "$package" &>/dev/null; then
             print_info "Установка AUR пакета: $package"
@@ -231,24 +239,28 @@ setup_autostart() {
 setup_fonts() {
     print_info "Проверка шрифтов..."
     
-    # Проверяем наличие JetBrains Mono
-    if ! fc-list | grep -q "JetBrains Mono"; then
-        print_warning "Шрифт JetBrains Mono не найден"
-        print_info "Установка JetBrains Mono..."
-        sudo pacman -S --needed ttf-jetbrains-mono
-    else
-        print_success "JetBrains Mono уже установлен"
-    fi
+    # Проверяем наличие всех установленных шрифтов
+    local fonts=(
+        "JetBrains Mono"
+        "Font Awesome"
+        "DejaVu"
+        "Powerline"
+    )
+    
+    for font in "${fonts[@]}"; do
+        if fc-list | grep -q "$font"; then
+            print_success "Шрифт $font уже установлен"
+        else
+            print_warning "Шрифт $font не найден"
+        fi
+    done
+    
+    print_success "Проверка шрифтов завершена"
 }
 
 # Настройка pywal (опционально)
 setup_pywal() {
     print_info "Настройка pywal для генерации цветов..."
-    
-    if ! command -v wal &> /dev/null; then
-        print_info "Установка pywal..."
-        pip install pywal
-    fi
     
     # Создаем базовую цветовую схему если её нет
     if [ ! -f ~/.cache/wal/colors.json ]; then
@@ -392,6 +404,88 @@ final_check() {
         all_good=false
     fi
     
+    if command -v hyprpicker &> /dev/null; then
+        local hyprpicker_version=$(hyprpicker --version 2>/dev/null || echo "unknown")
+        print_success "✓ hyprpicker: $hyprpicker_version"
+    else
+        print_error "✗ hyprpicker не установлен"
+        all_good=false
+    fi
+    
+    if command -v wal &> /dev/null; then
+        local pywal_version=$(wal --version 2>/dev/null || echo "unknown")
+        print_success "✓ pywal: $pywal_version"
+    else
+        print_error "✗ pywal не установлен"
+        all_good=false
+    fi
+    
+    # Проверка шрифта otf-codenewroman-nerd
+    if fc-list | grep -q "CodeNewRoman Nerd Font"; then
+        print_success "✓ otf-codenewroman-nerd: установлен"
+    else
+        print_error "✗ otf-codenewroman-nerd не установлен"
+        all_good=false
+    fi
+    
+    # Проверка шрифтов Font Awesome
+    if fc-list | grep -q "Font Awesome"; then
+        print_success "✓ Font Awesome: установлен"
+    else
+        print_error "✗ Font Awesome не установлен"
+        all_good=false
+    fi
+    
+    # Проверка шрифта JetBrains Mono
+    if fc-list | grep -q "JetBrains Mono"; then
+        print_success "✓ JetBrains Mono: установлен"
+    else
+        print_error "✗ JetBrains Mono не установлен"
+        all_good=false
+    fi
+    
+    # Проверка pkgfile
+    if command -v pkgfile &> /dev/null; then
+        local pkgfile_version=$(pkgfile --version 2>/dev/null || echo "unknown")
+        print_success "✓ pkgfile: $pkgfile_version"
+    else
+        print_error "✗ pkgfile не установлен"
+        all_good=false
+    fi
+    
+    # Проверка шрифта DejaVu
+    if fc-list | grep -q "DejaVu"; then
+        print_success "✓ DejaVu: установлен"
+    else
+        print_error "✗ DejaVu не установлен"
+        all_good=false
+    fi
+    
+    # Проверка Powerline шрифтов
+    if fc-list | grep -q "Powerline"; then
+        print_success "✓ Powerline fonts: установлены"
+    else
+        print_error "✗ Powerline fonts не установлены"
+        all_good=false
+    fi
+    
+    # Проверка nwg-look
+    if command -v nwg-look &> /dev/null; then
+        local nwg_look_version=$(nwg-look --version 2>/dev/null || echo "unknown")
+        print_success "✓ nwg-look: $nwg_look_version"
+    else
+        print_error "✗ nwg-look не установлен"
+        all_good=false
+    fi
+    
+    # Проверка papirus-icon-theme
+    if [ -d "/usr/share/icons/Papirus" ] || [ -d "/usr/share/icons/Papirus-Dark" ] || [ -d "/usr/share/icons/Papirus-Light" ]; then
+        print_success "✓ papirus-icon-theme: установлен"
+    else
+        print_error "✗ papirus-icon-theme не установлен"
+        all_good=false
+    fi
+    
     if [ "$all_good" = true ]; then
         print_success "Все конфигурационные файлы и программы установлены корректно!"
     else
@@ -426,6 +520,16 @@ show_next_steps() {
     echo "- yay: $(yay --version 2>/dev/null | head -n1 || echo 'не установлен')"
     echo "- Fish: $(fish --version 2>/dev/null | awk '{print $3}' || echo 'не установлен')"
     echo "- chpaper: $(chpaper --version 2>/dev/null || echo 'не установлен')"
+    echo "- hyprpicker: $(hyprpicker --version 2>/dev/null || echo 'не установлен')"
+    echo "- pywal: $(wal --version 2>/dev/null || echo 'не установлен')"
+    echo "- otf-codenewroman-nerd: $(fc-list | grep -q 'CodeNewRoman Nerd Font' && echo 'установлен' || echo 'не установлен')"
+    echo "- Font Awesome: $(fc-list | grep -q 'Font Awesome' && echo 'установлен' || echo 'не установлен')"
+    echo "- JetBrains Mono: $(fc-list | grep -q 'JetBrains Mono' && echo 'установлен' || echo 'не установлен')"
+    echo "- pkgfile: $(pkgfile --version 2>/dev/null || echo 'не установлен')"
+    echo "- DejaVu: $(fc-list | grep -q 'DejaVu' && echo 'установлен' || echo 'не установлен')"
+    echo "- Powerline fonts: $(fc-list | grep -q 'Powerline' && echo 'установлены' || echo 'не установлены')"
+    echo "- nwg-look: $(nwg-look --version 2>/dev/null || echo 'не установлен')"
+    echo "- papirus-icon-theme: $([ -d '/usr/share/icons/Papirus' ] || [ -d '/usr/share/icons/Papirus-Dark' ] || [ -d '/usr/share/icons/Papirus-Light' ] && echo 'установлен' || echo 'не установлен')"
     echo
     echo "Переменные окружения Go:"
     echo "- GOPATH: ~/go"
@@ -437,9 +541,31 @@ show_next_steps() {
     echo "- Поддерживаемые форматы: PNG, JPEG/JPG, WebP"
     echo "- Автоматическая генерация цветовых схем через pywal"
     echo
+    echo "Использование hyprpicker:"
+    echo "- hyprpicker -r: выбор цвета с экрана"
+    echo "- hyprpicker -a: выбор цвета с автоматическим копированием в буфер"
+    echo "- hyprpicker -f hex: вывод в формате hex"
+    echo
+    echo "Использование pywal:"
+    echo "- wal -i /path/to/image.png: генерация цветовой схемы из изображения"
+    echo "- wal -l: использование светлой темы"
+    echo "- wal -s: генерация схемы для конкретного терминала"
+    echo
+    echo "Использование pkgfile:"
+    echo "- pkgfile -u: обновление базы данных пакетов"
+    echo "- pkgfile <команда>: поиск пакета, содержащего команду"
+    echo "- pkgfile -b <файл>: поиск пакета, содержащего файл"
+    echo
+    echo "Использование nwg-look:"
+    echo "- nwg-look: запуск графического интерфейса для настройки GTK тем"
+    echo "- nwg-look -a: применение тем автоматически"
+    echo "- nwg-look -t <тема>: применение конкретной темы"
+    echo
     print_info "Документация: https://wiki.hyprland.org/"
     print_info "Go документация: https://golang.org/doc/"
     print_info "chpaper репозиторий: https://github.com/vyantik/chpaper"
+    print_info "hyprpicker документация: https://github.com/hyprwm/hyprpicker"
+    print_info "pywal документация: https://github.com/dylanaraps/pywal"
 }
 
 # Главная функция
