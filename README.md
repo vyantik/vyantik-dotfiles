@@ -14,6 +14,20 @@
 - **Экран блокировки**: Hyprlock
 - **Обои**: Hyprpaper
 
+## 📸 Скриншоты
+
+### Wofi
+
+![Wofi](screenshots/1.png)
+
+### Terminal
+
+![Terminal](screenshots/2.png)
+
+### SwayNC
+
+![SwayNC](screenshots/3.png)
+
 ## 📁 Структура
 
 ```
