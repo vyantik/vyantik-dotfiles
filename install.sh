@@ -299,7 +299,7 @@ setup_chpaper() {
     fi
     
     print_info "Сборка chpaper..."
-    if go build -o chpaper ./cmd/chpaper; then
+    if go build -o chpaper ./cmd; then
         print_success "chpaper успешно собран"
     else
         print_error "Ошибка при сборке chpaper"
@@ -457,7 +457,7 @@ main() {
     setup_pywal
     setup_autostart
     setup_fish
-    setup_chpaper
+    setup_chpaper    
     final_check
     show_next_steps
 }
