@@ -14,3 +14,8 @@ set --export GOPATH $HOME/go
 set --export GOROOT /usr/lib/go
 set --export GOPROXY https://proxy.golang.org,direct
 set --export PATH $GOPATH/bin $PATH
+
+# Cargo
+set -gx PATH $PATH /home/$USER/.cargo/bin
+
+fish_add_path /home/vyantik/.spicetify

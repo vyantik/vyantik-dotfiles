@@ -2,8 +2,8 @@
 @define-color mpris-album-art-overlay alpha(@background, 0.55);
 @define-color mpris-button-hover alpha(@background, 0.50);
 @define-color text @color15;
-@define-color bg alpha(@background,.5);
-@define-color bg-hover alpha(@background,.8);
+@define-color bg alpha(@background,0.8);
+@define-color bg-hover alpha(@background,0.8);
 @define-color mycolor @color9;
 @define-color border-color alpha(@mycolor, 0.15);
 
@@ -14,8 +14,8 @@
     margin-right:50px;
 }
 100% {
-    padding:0;
-    margin:0;
+    padding:0px;
+    margin:0px;
 }
 }
 * {
@@ -30,14 +30,14 @@
 .floating-notifications.background .notification-background .notification .notification-content {
 }
 .notification{
-    background: alpha(@mycolor,.5);
+    background: alpha(@mycolor,.8);
 
 }
 
 .control-center .notification-row .notification-background .notification {
     margin-top: 0.150rem;
     box-shadow: 1px 1px 5px rgba(0, 0, 0, .3);
-    background: alpha(@mycolor,.3);
+    background: alpha(@mycolor,.7);
 
 }
 .floating-notifications .notification{
@@ -72,7 +72,7 @@
     padding-right:10px;
 }
 
-.control-center .notification-row .notification-background .notification.low .notification-content image,
+.control-center .notification-row .notification-background .notification .notification-content image,
 .control-center .notification-row .notification-background .notification.normal .notification-content image,
 .floating-notifications.background .notification-background .notification.low .notification-content image,
 .floating-notifications.background .notification-background .notification.normal .notification-content image {
