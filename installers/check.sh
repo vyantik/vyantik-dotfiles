@@ -67,6 +67,7 @@ check_fonts() {
     
     local fonts=(
         "JetBrains Mono"
+        "JetBrainsMono Nerd Font"
         "Font Awesome"
         "DejaVu"
         "Powerline"

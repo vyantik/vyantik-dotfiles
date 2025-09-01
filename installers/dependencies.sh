@@ -26,12 +26,17 @@ install_dependencies() {
         "ttf-font-awesome"
         "otf-font-awesome"
         "ttf-jetbrains-mono"
+        "ttf-jetbrains-mono-nerd"
         "pkgfile"
         "ttf-dejavu"
         "powerline-fonts"
         "nwg-look"
         "papirus-icon-theme"
         "rsync"
+        "xdg-desktop-portal"
+        "xdg-desktop-portal-gtk"
+        "xdg-desktop-portal-hyprland"
+        "fuse2"
     )
     
     local missing_packages=()
