@@ -49,14 +49,16 @@ install_docker_packages() {
     
     # Update system packages first
     log_info "Обновляю системные пакеты..."
-    if sudo pacman -Syu --noconfirm 2>/dev/null; then
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -Syu --noconfirm"
+    if sudo pacman -Syu --noconfirm; then
         log_success "Системные пакеты обновлены"
     else
         log_warning "Не удалось обновить системные пакеты, продолжаю..."
     fi
     
     # Install Docker
-    if sudo pacman -S docker --noconfirm 2>/dev/null; then
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S docker --noconfirm"
+    if sudo pacman -S docker --noconfirm; then
         log_success "Docker установлен"
         INSTALLED_PACKAGES+=("docker")
     else
@@ -66,7 +68,8 @@ install_docker_packages() {
     fi
     
     # Install Docker Compose
-    if sudo pacman -S docker-compose --noconfirm 2>/dev/null; then
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S docker-compose --noconfirm"
+    if sudo pacman -S docker-compose --noconfirm; then
         log_success "Docker Compose установлен"
         INSTALLED_PACKAGES+=("docker-compose")
     else

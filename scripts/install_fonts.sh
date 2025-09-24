@@ -43,11 +43,14 @@ install_font_package() {
         return 0
     fi
     
-    if sudo pacman -S --noconfirm "$font_package" 2>/dev/null; then
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm $font_package"
+    if sudo pacman -S --noconfirm "$font_package"; then
         log_success "Пакет шрифтов $font_package установлен"
         INSTALLED_FONTS+=("$font_package")
         return 0
-    elif command -v yay &> /dev/null && yay -S --noconfirm "$font_package" 2>/dev/null; then
+    elif command -v yay &> /dev/null; then
+        echo -e "${BLUE}[YAY]${NC} yay -S --noconfirm $font_package"
+        if yay -S --noconfirm "$font_package"; then
         log_success "Пакет шрифтов $font_package установлен через AUR"
         INSTALLED_FONTS+=("$font_package")
         return 0

@@ -47,11 +47,14 @@ install_package() {
         return 0
     fi
     
-    if sudo pacman -S --noconfirm "$package" 2>/dev/null; then
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm $package"
+    if sudo pacman -S --noconfirm "$package"; then
         log_success "Пакет $package установлен"
         INSTALLED_PACKAGES+=("$package")
         return 0
-    elif command -v yay &> /dev/null && yay -S --noconfirm "$package" 2>/dev/null; then
+    elif command -v yay &> /dev/null; then
+        echo -e "${BLUE}[YAY]${NC} yay -S --noconfirm $package"
+        if yay -S --noconfirm "$package"; then
         log_success "Пакет $package установлен через AUR"
         INSTALLED_PACKAGES+=("$package")
         return 0

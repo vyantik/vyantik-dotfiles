@@ -105,6 +105,7 @@ download_cursor_appimage() {
     # Create temporary file first, then move to final location
     local temp_file="$cursor_path.tmp"
     
+    echo -e "${BLUE}[WGET]${NC} wget --progress=bar:force:noscroll $cursor_url -O $temp_file"
     if wget --progress=bar:force:noscroll "$cursor_url" -O "$temp_file" 2>&1; then
         mv "$temp_file" "$cursor_path"
         # Make it executable
@@ -219,7 +220,8 @@ install_required_packages() {
     # Check and install wget if not present
     if ! command -v wget &> /dev/null; then
         log_info "Устанавливаю wget..."
-        if sudo pacman -S --noconfirm wget 2>/dev/null; then
+        echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm wget"
+        if sudo pacman -S --noconfirm wget; then
             log_success "wget установлен"
         else
             log_error "Не удалось установить wget"

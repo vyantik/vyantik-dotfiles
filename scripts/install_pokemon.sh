@@ -87,7 +87,8 @@ install_pokemon() {
     # Install Rust if not present (needed for pokeget)
     if ! command -v cargo &> /dev/null; then
         log_info "Устанавливаю Rust для сборки pokeget..."
-        if sudo pacman -S --noconfirm rust 2>/dev/null; then
+        echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm rust"
+        if sudo pacman -S --noconfirm rust; then
             log_success "Rust установлен"
         else
             log_error "Не удалось установить Rust"
