@@ -1,0 +1,8 @@
+#!/bin/bash
+
+if [ -z "$1" ]; then
+    ~/AppImages/cursor.appimage > /dev/null 2>&1 &
+    exit 0
+fi
+
+~/AppImages/cursor.appimage "$1" > /dev/null 2>&1 &
