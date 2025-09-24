@@ -55,9 +55,14 @@ install_package() {
     elif command -v yay &> /dev/null; then
         echo -e "${BLUE}[YAY]${NC} yay -S --noconfirm $package"
         if yay -S --noconfirm "$package"; then
-        log_success "Пакет $package установлен через AUR"
-        INSTALLED_PACKAGES+=("$package")
-        return 0
+            log_success "Пакет $package установлен через AUR"
+            INSTALLED_PACKAGES+=("$package")
+            return 0
+        else
+            log_error "Не удалось установить пакет через AUR: $package"
+            FAILED_PACKAGES+=("$package")
+            return 1
+        fi
     else
         log_error "Не удалось установить пакет: $package"
         FAILED_PACKAGES+=("$package")
