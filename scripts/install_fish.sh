@@ -39,34 +39,53 @@ log_error() {
 # Function to install packages using pacman/yay
 install_package() {
     local package=$1
-    log_info "Устанавливаю пакет: $package"
+    log_info "Проверяю пакет: $package"
     
+    # Check if already installed
     if pacman -Qi "$package" &> /dev/null; then
-        log_success "$package уже установлен"
+        log_success "Пакет $package уже установлен"
         INSTALLED_PACKAGES+=("$package")
+        echo "INSTALLED: $package (already installed)"
         return 0
     fi
     
-    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm $package"
-    if sudo pacman -S --noconfirm "$package"; then
-        log_success "Пакет $package установлен"
+    log_info "Устанавливаю пакет: $package"
+    
+    # Try pacman first
+    echo -e "${BLUE}[PACMAN]${NC} Выполняю: sudo pacman -S --noconfirm $package"
+    if sudo pacman -S --noconfirm "$package" 2>&1; then
+        log_success "Пакет $package установлен через pacman"
         INSTALLED_PACKAGES+=("$package")
+        echo "INSTALLED: $package (via pacman)"
         return 0
-    elif command -v yay &> /dev/null; then
-        echo -e "${BLUE}[YAY]${NC} yay -S --noconfirm $package"
-        if yay -S --noconfirm "$package"; then
-            log_success "Пакет $package установлен через AUR"
-            INSTALLED_PACKAGES+=("$package")
-            return 0
+    else
+        local pacman_exit_code=$?
+        log_warning "Pacman не смог установить $package (код выхода: $pacman_exit_code)"
+        
+        # Try yay if available
+        if command -v yay &> /dev/null; then
+            log_info "Пробую установить через AUR (yay)..."
+            echo -e "${BLUE}[YAY]${NC} Выполняю: yay -S --noconfirm $package"
+            
+            if yay -S --noconfirm "$package" 2>&1; then
+                log_success "Пакет $package установлен через AUR"
+                INSTALLED_PACKAGES+=("$package")
+                echo "INSTALLED: $package (via AUR)"
+                return 0
+            else
+                local yay_exit_code=$?
+                log_error "Не удалось установить $package через AUR (код выхода: $yay_exit_code)"
+                FAILED_PACKAGES+=("$package")
+                echo "FAILED: $package (pacman: $pacman_exit_code, yay: $yay_exit_code)"
+                return 1
+            fi
         else
+            log_error "yay не найден, не могу установить из AUR"
             log_error "Не удалось установить пакет: $package"
             FAILED_PACKAGES+=("$package")
+            echo "FAILED: $package (no yay available)"
             return 1
         fi
-    else
-        log_error "Не удалось установить пакет: $package"
-        FAILED_PACKAGES+=("$package")
-        return 1
     fi
 }
 
@@ -98,43 +117,96 @@ copy_config() {
 
 # Function to install Bun
 install_bun() {
-    log_info "Устанавливаю Bun..."
-    if [ ! -d "$HOME/.bun" ]; then
-        curl -fsSL https://bun.sh/install | bash
-        if [ $? -eq 0 ]; then
-            log_success "Bun установлен"
+    log_info "Проверяю установку Bun..."
+    
+    # Check if Bun is already installed
+    if [ -d "$HOME/.bun" ] && [ -f "$HOME/.bun/bin/bun" ]; then
+        log_success "Bun уже установлен"
+        local bun_version=$("$HOME/.bun/bin/bun" --version 2>/dev/null || echo "unknown")
+        log_info "Версия Bun: $bun_version"
+        INSTALLED_PACKAGES+=("bun")
+        echo "INSTALLED: bun (already installed, version: $bun_version)"
+        return 0
+    fi
+    
+    log_info "Устанавливаю Bun JavaScript runtime..."
+    echo -e "${BLUE}[CURL]${NC} Выполняю: curl -fsSL https://bun.sh/install | bash"
+    
+    if curl -fsSL https://bun.sh/install | bash; then
+        local bun_exit_code=$?
+        if [ $bun_exit_code -eq 0 ] && [ -f "$HOME/.bun/bin/bun" ]; then
+            local bun_version=$("$HOME/.bun/bin/bun" --version 2>/dev/null || echo "unknown")
+            log_success "Bun установлен успешно (версия: $bun_version)"
+            log_info "Путь к Bun: $HOME/.bun/bin/bun"
             INSTALLED_PACKAGES+=("bun")
+            echo "INSTALLED: bun (version: $bun_version)"
+            return 0
         else
-            log_error "Не удалось установить Bun"
+            log_error "Установка Bun завершилась, но исполняемый файл не найден"
             FAILED_PACKAGES+=("bun")
+            echo "FAILED: bun (installation completed but binary not found)"
+            return 1
         fi
     else
-        log_success "Bun уже установлен"
-        INSTALLED_PACKAGES+=("bun")
+        local curl_exit_code=$?
+        log_error "Не удалось установить Bun (код выхода: $curl_exit_code)"
+        log_error "URL: https://bun.sh/install"
+        FAILED_PACKAGES+=("bun")
+        echo "FAILED: bun (curl failed: $curl_exit_code)"
+        return 1
     fi
 }
 
 # Function to install Spicetify
 install_spicetify() {
-    log_info "Устанавливаю Spicetify..."
-    if ! command -v spicetify &> /dev/null; then
-        curl -fsSL https://raw.githubusercontent.com/spicetify/spicetify-cli/master/install.sh | sh
-        if [ $? -eq 0 ]; then
-            log_success "Spicetify установлен"
+    log_info "Проверяю установку Spicetify..."
+    
+    # Check if Spicetify is already installed
+    if command -v spicetify &> /dev/null; then
+        local spicetify_version=$(spicetify -v 2>/dev/null | head -1 || echo "unknown")
+        log_success "Spicetify уже установлен"
+        log_info "Версия: $spicetify_version"
+        INSTALLED_PACKAGES+=("spicetify")
+        echo "INSTALLED: spicetify (already installed, version: $spicetify_version)"
+        return 0
+    fi
+    
+    log_info "Устанавливаю Spicetify CLI для кастомизации Spotify..."
+    echo -e "${BLUE}[CURL]${NC} Выполняю: curl -fsSL https://raw.githubusercontent.com/spicetify/spicetify-cli/master/install.sh | sh"
+    
+    if curl -fsSL https://raw.githubusercontent.com/spicetify/spicetify-cli/master/install.sh | sh; then
+        # Refresh PATH and check if spicetify is now available
+        export PATH="$HOME/.spicetify:$PATH"
+        
+        if command -v spicetify &> /dev/null; then
+            local spicetify_version=$(spicetify -v 2>/dev/null | head -1 || echo "unknown")
+            log_success "Spicetify установлен успешно"
+            log_info "Версия: $spicetify_version"
+            log_info "Путь: $(which spicetify)"
             INSTALLED_PACKAGES+=("spicetify")
+            echo "INSTALLED: spicetify (version: $spicetify_version)"
+            return 0
         else
-            log_error "Не удалось установить Spicetify"
+            log_error "Установка Spicetify завершилась, но команда недоступна"
+            log_warning "Возможно, требуется перезапуск терминала"
             FAILED_PACKAGES+=("spicetify")
+            echo "FAILED: spicetify (installation completed but command not found)"
+            return 1
         fi
     else
-        log_success "Spicetify уже установлен"
-        INSTALLED_PACKAGES+=("spicetify")
+        local curl_exit_code=$?
+        log_error "Не удалось установить Spicetify (код выхода: $curl_exit_code)"
+        log_error "URL: https://raw.githubusercontent.com/spicetify/spicetify-cli/master/install.sh"
+        FAILED_PACKAGES+=("spicetify")
+        echo "FAILED: spicetify (curl failed: $curl_exit_code)"
+        return 1
     fi
 }
 
 # Main installation function
 install_fish() {
     log_info "Начинаю установку Fish shell и связанных компонентов..."
+    echo "========================================="
     
     # Required packages
     local packages=(
@@ -146,36 +218,167 @@ install_fish() {
         "ripgrep"
     )
     
+    echo ""
+    log_info "Устанавливаю основные пакеты..."
+    echo "========================================="
+    
     # Install packages
+    local total_packages=${#packages[@]}
+    local current_package=1
+    
     for package in "${packages[@]}"; do
+        echo ""
+        log_info "[$current_package/$total_packages] Обрабатываю: $package"
         install_package "$package"
+        ((current_package++))
     done
     
+    echo ""
+    log_info "Устанавливаю дополнительные компоненты..."
+    echo "========================================="
+    
     # Install special packages
+    echo ""
     install_bun
+    echo ""
     install_spicetify
     
+    echo ""
+    log_info "Копирую конфигурационные файлы..."
+    echo "========================================="
+    
     # Create config directory
+    log_info "Создаю директорию конфигурации: $CONFIG_DIR"
     mkdir -p "$CONFIG_DIR"
     
     # Copy configurations
+    echo ""
     copy_config "$DOTFILES_DIR/fish" "$CONFIG_DIR/fish" "Fish Shell"
+    echo ""
     copy_config "$DOTFILES_DIR/fastfetch" "$CONFIG_DIR/fastfetch" "Fastfetch"
+    
+    echo ""
+    log_info "Настройка Fish как оболочки по умолчанию..."
+    echo "========================================="
     
     # Set fish as default shell
     if command -v fish &> /dev/null; then
-        log_info "Устанавливаю Fish как оболочку по умолчанию..."
-        if ! grep -q "$(which fish)" /etc/shells; then
-            echo "$(which fish)" | sudo tee -a /etc/shells
-        fi
-        if chsh -s "$(which fish)" 2>/dev/null; then
-            log_success "Fish установлен как оболочка по умолчанию"
+        log_info "Настраиваю Fish как оболочку по умолчанию..."
+        
+        local fish_path="$(which fish)"
+        log_info "Путь к Fish: $fish_path"
+        
+        # Add fish to /etc/shells if not present
+        if ! grep -q "$fish_path" /etc/shells; then
+            log_info "Добавляю Fish в /etc/shells..."
+            echo -e "${BLUE}[SUDO]${NC} Выполняю: echo '$fish_path' | sudo tee -a /etc/shells"
+            if echo "$fish_path" | sudo tee -a /etc/shells > /dev/null; then
+                log_success "Fish добавлен в /etc/shells"
+            else
+                log_error "Не удалось добавить Fish в /etc/shells"
+                return 1
+            fi
         else
-            log_warning "Не удалось установить Fish как оболочку по умолчанию. Выполните: chsh -s \$(which fish)"
+            log_success "Fish уже присутствует в /etc/shells"
         fi
+        
+        # Change default shell for current user
+        log_info "Изменяю оболочку по умолчанию для пользователя: $USER"
+        log_warning "Для смены оболочки потребуется ввести пароль пользователя"
+        echo -e "${BLUE}[CHSH]${NC} Выполняю: chsh -s '$fish_path'"
+        
+        # Use timeout to prevent hanging and provide better error handling
+        if timeout 30 chsh -s "$fish_path"; then
+            log_success "Fish установлен как оболочка по умолчанию"
+            log_info "Перезапустите терминал или выполните 'exec fish' для применения изменений"
+        else
+            local chsh_exit_code=$?
+            if [ $chsh_exit_code -eq 124 ]; then
+                log_error "Таймаут при выполнении chsh (30 секунд)"
+                log_warning "Возможно, требуется ввод пароля"
+            else
+                log_error "Не удалось установить Fish как оболочку по умолчанию (код выхода: $chsh_exit_code)"
+            fi
+            log_warning "Вы можете вручную выполнить: chsh -s $fish_path"
+            log_warning "Или добавить 'exec fish' в ~/.bashrc для автоматического запуска Fish"
+            
+            # Offer alternative - add exec fish to bashrc
+            log_info "Альтернативный способ: добавляю запуск Fish в ~/.bashrc"
+            if ! grep -q "exec fish" "$HOME/.bashrc" 2>/dev/null; then
+                echo "" >> "$HOME/.bashrc"
+                echo "# Auto-start Fish shell" >> "$HOME/.bashrc"
+                echo "if [[ \$- == *i* ]] && [[ \$(ps --no-header --pid=\$\$PPID --format=comm) != \"fish\" ]] && [[ -z \${BASH_EXECUTION_STRING} ]]; then" >> "$HOME/.bashrc"
+                echo "    exec fish" >> "$HOME/.bashrc"
+                echo "fi" >> "$HOME/.bashrc"
+                log_success "Добавлен автозапуск Fish в ~/.bashrc"
+                log_info "Fish будет запускаться автоматически при открытии терминала"
+            else
+                log_info "Автозапуск Fish уже настроен в ~/.bashrc"
+            fi
+        fi
+    else
+        log_error "Fish не найден в системе"
+        return 1
     fi
     
+    echo ""
+    log_info "Финализация установки..."
+    echo "========================================="
+    
     log_success "Установка Fish shell завершена!"
+    echo ""
+    
+    # Summary
+    local installed_packages_count=${#INSTALLED_PACKAGES[@]}
+    local failed_packages_count=${#FAILED_PACKAGES[@]}
+    local installed_configs_count=${#INSTALLED_CONFIGS[@]}
+    local failed_configs_count=${#FAILED_CONFIGS[@]}
+    
+    echo "========================================="
+    echo -e "${GREEN}Установлено пакетов: $installed_packages_count${NC}"
+    echo -e "${RED}Ошибок установки пакетов: $failed_packages_count${NC}"
+    echo -e "${GREEN}Скопировано конфигураций: $installed_configs_count${NC}"
+    echo -e "${RED}Ошибок копирования конфигураций: $failed_configs_count${NC}"
+    
+    if [ $installed_packages_count -gt 0 ]; then
+        echo ""
+        echo -e "${GREEN}Успешно установленные пакеты:${NC}"
+        for package in "${INSTALLED_PACKAGES[@]}"; do
+            echo -e "  ✓ $package"
+        done
+    fi
+    
+    if [ $failed_packages_count -gt 0 ]; then
+        echo ""
+        echo -e "${RED}Неустановленные пакеты:${NC}"
+        for package in "${FAILED_PACKAGES[@]}"; do
+            echo -e "  ✗ $package"
+        done
+    fi
+    
+    if [ $installed_configs_count -gt 0 ]; then
+        echo ""
+        echo -e "${GREEN}Успешно скопированные конфигурации:${NC}"
+        for config in "${INSTALLED_CONFIGS[@]}"; do
+            echo -e "  ✓ $config"
+        done
+    fi
+    
+    if [ $failed_configs_count -gt 0 ]; then
+        echo ""
+        echo -e "${RED}Ошибки конфигурации:${NC}"
+        for config in "${FAILED_CONFIGS[@]}"; do
+            echo -e "  ✗ $config"
+        done
+    fi
+    
+    echo ""
+    echo -e "${YELLOW}Что дальше:${NC}"
+    echo "• Перезапустите терминал для применения настроек Fish"
+    echo "• Выполните 'fish' для немедленного переключения"
+    echo "• Fastfetch будет показывать информацию о системе при запуске"
+    echo "• Настройки Fish находятся в ~/.config/fish/"
+    echo "========================================="
 }
 
 # Function to return installation status
