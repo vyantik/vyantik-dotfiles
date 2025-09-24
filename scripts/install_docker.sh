@@ -213,93 +213,7 @@ show_usage_examples() {
     fi
 }
 
-# Function to create basic docker-compose example
-create_docker_examples() {
-    log_info "Создаю примеры Docker конфигураций..."
-    
-    local examples_dir="$HOME/docker-examples"
-    
-    if [ ! -d "$examples_dir" ]; then
-        mkdir -p "$examples_dir"
-        log_success "Создана папка примеров: $examples_dir"
-    fi
-    
-    # Create a simple docker-compose.yml example
-    cat > "$examples_dir/docker-compose.yml" << 'EOF'
-version: '3.8'
-
-services:
-  nginx:
-    image: nginx:alpine
-    ports:
-      - "8080:80"
-    volumes:
-      - ./html:/usr/share/nginx/html:ro
-    restart: unless-stopped
-
-  redis:
-    image: redis:alpine
-    ports:
-      - "6379:6379"
-    restart: unless-stopped
-
-networks:
-  default:
-    name: dotfiles-network
-EOF
-
-    # Create example HTML file
-    mkdir -p "$examples_dir/html"
-    cat > "$examples_dir/html/index.html" << 'EOF'
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Docker Example</title>
-</head>
-<body>
-    <h1>Добро пожаловать в Docker!</h1>
-    <p>Этот nginx сервер запущен в Docker контейнере.</p>
-    <p>Порт: 8080</p>
-</body>
-</html>
-EOF
-
-    # Create README for examples
-    cat > "$examples_dir/README.md" << 'EOF'
-# Docker Examples
-
-Примеры Docker конфигураций для быстрого старта.
-
-## Запуск примера
-
-```bash
-cd ~/docker-examples
-docker-compose up -d
-```
-
-Откройте http://localhost:8080 в браузере.
-
-## Остановка
-
-```bash
-docker-compose down
-```
-
-## Логи
-
-```bash
-docker-compose logs -f
-```
-EOF
-
-    if [ $? -eq 0 ]; then
-        log_success "Примеры Docker созданы в $examples_dir"
-        INSTALLED_CONFIGS+=("docker-examples")
-    else
-        log_warning "Не удалось создать примеры Docker"
-        FAILED_CONFIGS+=("docker-examples")
-    fi
-}
+# Function removed - no examples creation
 
 # Main installation function
 install_docker() {
@@ -334,9 +248,6 @@ install_docker() {
     
     # Verify installation
     verify_docker_installation
-    
-    # Create examples
-    create_docker_examples
     
     # Show usage examples
     show_usage_examples

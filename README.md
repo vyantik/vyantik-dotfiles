@@ -75,7 +75,6 @@
 - **Платформа контейнеризации** для изолированных приложений
 - **Docker Compose** для управления многоконтейнерными приложениями
 - **Автоматическая настройка** сервиса и пользовательских групп
-- **Готовые примеры** конфигураций в ~/docker-examples
 - **Полная интеграция** с системой без sudo
 
 ### 🔤 Шрифты и иконы
@@ -158,17 +157,14 @@ dotfiles/
 
 ## 🔧 Кастомизация
 
-### Мониторы
-Отредактируйте `~/.config/hypr/monitors.conf` для настройки ваших мониторов:
-```bash
-monitor=DP-1,2560x1440@144,0x0,1
-monitor=HDMI-A-1,1920x1080@60,2560x0,1
-```
-
 ### Цветовые схемы
 Используйте `pywal` для автоматической генерации цветовых схем:
 ```bash
 wal -i ~/Pictures/wallpaper.jpg
+```
+Или используете CLI chpaper(Он изменит текущие обои и подберет цветовую схему под них)
+```bash
+chpaper --path ~/Trashik/Wallpapers/example.jpeg
 ```
 
 ### Waybar модули
@@ -184,11 +180,11 @@ sort_reverse = true
 ```
 
 ### Docker использование
-После установки Docker доступны готовые примеры:
+После установки Docker готов к использованию:
 ```bash
-cd ~/docker-examples
-docker-compose up -d    # запуск nginx + redis
-docker-compose down     # остановка сервисов
+docker --version           # проверить версию
+docker run hello-world     # тестовый контейнер
+docker compose --version   # проверить Docker Compose
 ```
 
 ## 🐛 Диагностика
