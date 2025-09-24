@@ -283,38 +283,19 @@ install_fish() {
         fi
         
         # Change default shell for current user
-        log_info "Изменяю оболочку по умолчанию для пользователя: $USER"
-        log_warning "Для смены оболочки потребуется ввести пароль пользователя"
+        log_info "Настраиваю Fish как оболочку по умолчанию..."
+        log_info "Для смены оболочки потребуется ввести ваш пароль"
         echo -e "${BLUE}[CHSH]${NC} Выполняю: chsh -s '$fish_path'"
         
-        # Use timeout to prevent hanging and provide better error handling
-        if timeout 30 chsh -s "$fish_path"; then
+        if chsh -s "$fish_path"; then
             log_success "Fish установлен как оболочка по умолчанию"
-            log_info "Перезапустите терминал или выполните 'exec fish' для применения изменений"
+            log_info "Изменения вступят в силу при следующем входе в систему"
+            log_info "Для немедленного применения выполните: exec fish"
         else
             local chsh_exit_code=$?
-            if [ $chsh_exit_code -eq 124 ]; then
-                log_error "Таймаут при выполнении chsh (30 секунд)"
-                log_warning "Возможно, требуется ввод пароля"
-            else
-                log_error "Не удалось установить Fish как оболочку по умолчанию (код выхода: $chsh_exit_code)"
-            fi
-            log_warning "Вы можете вручную выполнить: chsh -s $fish_path"
-            log_warning "Или добавить 'exec fish' в ~/.bashrc для автоматического запуска Fish"
-            
-            # Offer alternative - add exec fish to bashrc
-            log_info "Альтернативный способ: добавляю запуск Fish в ~/.bashrc"
-            if ! grep -q "exec fish" "$HOME/.bashrc" 2>/dev/null; then
-                echo "" >> "$HOME/.bashrc"
-                echo "# Auto-start Fish shell" >> "$HOME/.bashrc"
-                echo "if [[ \$- == *i* ]] && [[ \$(ps --no-header --pid=\$\$PPID --format=comm) != \"fish\" ]] && [[ -z \${BASH_EXECUTION_STRING} ]]; then" >> "$HOME/.bashrc"
-                echo "    exec fish" >> "$HOME/.bashrc"
-                echo "fi" >> "$HOME/.bashrc"
-                log_success "Добавлен автозапуск Fish в ~/.bashrc"
-                log_info "Fish будет запускаться автоматически при открытии терминала"
-            else
-                log_info "Автозапуск Fish уже настроен в ~/.bashrc"
-            fi
+            log_error "Не удалось установить Fish как оболочку по умолчанию (код выхода: $chsh_exit_code)"
+            log_warning "Вы можете попробовать выполнить вручную: chsh -s $fish_path"
+            log_info "Или просто запускайте Fish командой: fish"
         fi
     else
         log_error "Fish не найден в системе"
@@ -374,10 +355,11 @@ install_fish() {
     
     echo ""
     echo -e "${YELLOW}Что дальше:${NC}"
-    echo "• Перезапустите терминал для применения настроек Fish"
-    echo "• Выполните 'fish' для немедленного переключения"
-    echo "• Fastfetch будет показывать информацию о системе при запуске"
+    echo "• Выполните 'exec fish' для переключения на Fish в текущем терминале"
+    echo "• Перезапустите терминал - Fish станет оболочкой по умолчанию"
+    echo "• Fastfetch будет показывать информацию о системе при запуске Fish"
     echo "• Настройки Fish находятся в ~/.config/fish/"
+    echo "• Для возврата в bash выполните: exec bash"
     echo "========================================="
 }
 
