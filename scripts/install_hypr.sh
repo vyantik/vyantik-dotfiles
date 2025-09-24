@@ -126,15 +126,9 @@ install_hypr() {
         "ripgrep"
     )
     
-    # Install AUR helper if not present
+    # yay AUR helper should be installed globally by main.sh
     if ! command -v yay &> /dev/null; then
-        log_info "Устанавливаю yay AUR helper..."
-        echo -e "${BLUE}[GIT]${NC} git clone https://aur.archlinux.org/yay.git /tmp/yay"
-        git clone https://aur.archlinux.org/yay.git /tmp/yay
-        cd /tmp/yay
-        echo -e "${BLUE}[MAKEPKG]${NC} makepkg -si --noconfirm"
-        makepkg -si --noconfirm
-        cd - > /dev/null
+        log_warning "yay AUR helper не найден, некоторые пакеты могут быть недоступны"
     fi
     
     # Install hyprshot from AUR

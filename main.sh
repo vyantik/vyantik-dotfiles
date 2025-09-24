@@ -111,6 +111,7 @@ install_component() {
     local script_name=$1
     local component_name=$2
     local script_path="$SCRIPTS_DIR/$script_name"
+    local log_file="/tmp/install_${component_name}.log"
     
     if [ ! -f "$script_path" ]; then
         log_error "Скрипт не найден: $script_path"
@@ -120,23 +121,64 @@ install_component() {
     fi
     
     log_info "Запускаю установку: $component_name"
+    log_info "Скрипт: $script_path"
+    log_info "Лог-файл: $log_file"
     
-    # Source the script and run installation
-    if bash "$script_path" > "/tmp/install_${component_name}.log" 2>&1; then
+    # Clear previous log
+    > "$log_file"
+    
+    # Add header to log file
+    echo "=== Установка компонента: $component_name ===" >> "$log_file"
+    echo "Время: $(date)" >> "$log_file"
+    echo "Скрипт: $script_path" >> "$log_file"
+    echo "=========================================" >> "$log_file"
+    
+    # Run script with verbose output
+    log_info "Выполняю: bash '$script_path'"
+    
+    # Use unbuffer if available for real-time output, otherwise use stdbuf
+    if command -v unbuffer &> /dev/null; then
+        unbuffer bash "$script_path" 2>&1 | tee -a "$log_file"
+        local exit_code=${PIPESTATUS[0]}
+    elif command -v stdbuf &> /dev/null; then
+        stdbuf -o0 -e0 bash "$script_path" 2>&1 | tee -a "$log_file"
+        local exit_code=${PIPESTATUS[0]}
+    else
+        bash "$script_path" 2>&1 | tee -a "$log_file"
+        local exit_code=${PIPESTATUS[0]}
+    fi
+    
+    # Add footer to log file
+    echo "=========================================" >> "$log_file"
+    echo "Время завершения: $(date)" >> "$log_file"
+    echo "Код выхода: $exit_code" >> "$log_file"
+    
+    if [ $exit_code -eq 0 ]; then
         INSTALL_STATUS["$component_name"]="SUCCESS"
         
         # Parse installation details from script output
-        local details=$(tail -20 "/tmp/install_${component_name}.log" | grep -E "(INSTALLED|FAILED)" | head -10)
-        INSTALL_DETAILS["$component_name"]="$details"
+        local details=$(tail -30 "$log_file" | grep -E "(SUCCESS|INSTALLED|установлен)" | tail -5 | tr '\n' '; ')
+        INSTALL_DETAILS["$component_name"]="${details:-"Установлено успешно"}"
         
         log_success "Компонент $component_name установлен успешно"
+        log_info "Детали установки сохранены в: $log_file"
         return 0
     else
         INSTALL_STATUS["$component_name"]="FAILED"
-        local error_details=$(tail -10 "/tmp/install_${component_name}.log")
+        
+        # Get error details from log
+        local error_details=$(tail -20 "$log_file" | grep -E "(ERROR|FAILED|error|failed)" | tail -3 | tr '\n' '; ')
+        if [ -z "$error_details" ]; then
+            error_details="Код выхода: $exit_code. Проверьте лог: $log_file"
+        fi
         INSTALL_DETAILS["$component_name"]="$error_details"
         
-        log_error "Не удалось установить компонент: $component_name"
+        log_error "Не удалось установить компонент: $component_name (код выхода: $exit_code)"
+        log_error "Последние ошибки из лога:"
+        tail -10 "$log_file" | grep -E "(ERROR|FAILED|error|failed)" | head -5 | while read line; do
+            echo -e "${RED}  > ${line}${NC}"
+        done
+        log_info "Полный лог ошибок доступен в: $log_file"
         return 1
     fi
 }
@@ -387,6 +429,7 @@ show_help() {
     echo "• Права sudo"
     echo "• Подключение к интернету"
     echo "• Git для клонирования репозиториев"
+    echo "• yay AUR helper (устанавливается автоматически)"
     echo ""
     
     echo -e "${BOLD}Важные файлы:${NC}"
@@ -396,6 +439,49 @@ show_help() {
     echo ""
     
     read -p "Нажмите Enter для возврата в главное меню..."
+}
+
+# Function to install yay AUR helper globally
+install_yay_helper() {
+    if command -v yay &> /dev/null; then
+        log_success "yay AUR helper уже установлен"
+        return 0
+    fi
+    
+    log_info "Устанавливаю yay AUR helper глобально..."
+    
+    # Install base development tools
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --needed --noconfirm base-devel git"
+    if ! sudo pacman -S --needed --noconfirm base-devel git; then
+        log_error "Не удалось установить base-devel"
+        return 1
+    fi
+    
+    # Clone yay repository
+    local temp_dir=$(mktemp -d)
+    local current_dir=$(pwd)
+    
+    echo -e "${BLUE}[GIT]${NC} git clone https://aur.archlinux.org/yay.git $temp_dir/yay"
+    if ! git clone https://aur.archlinux.org/yay.git "$temp_dir/yay"; then
+        log_error "Не удалось клонировать yay репозиторий"
+        rm -rf "$temp_dir"
+        return 1
+    fi
+    
+    # Build and install yay
+    cd "$temp_dir/yay"
+    echo -e "${BLUE}[MAKEPKG]${NC} makepkg -si --noconfirm"
+    if makepkg -si --noconfirm; then
+        log_success "yay AUR helper установлен глобально"
+        cd "$current_dir"
+        rm -rf "$temp_dir"
+        return 0
+    else
+        log_error "Не удалось собрать yay"
+        cd "$current_dir"
+        rm -rf "$temp_dir"
+        return 1
+    fi
 }
 
 # Function to check system requirements
@@ -429,13 +515,14 @@ check_requirements() {
     # Check for git
     if ! command -v git &> /dev/null; then
         log_info "Устанавливаю Git..."
+        echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm git"
         sudo pacman -S --noconfirm git || {
             log_error "Не удалось установить Git"
             exit 1
         }
     fi
     
-    log_success "Системные требования проверены"
+    log_success "Базовые системные требования проверены"
 }
 
 # Main function
@@ -445,6 +532,12 @@ main() {
     
     # Check requirements
     check_requirements
+    
+    # Install yay AUR helper globally before anything else
+    log_header "ПОДГОТОВКА СИСТЕМЫ"
+    install_yay_helper || {
+        log_warning "Не удалось установить yay, некоторые AUR пакеты могут быть недоступны"
+    }
     
     while true; do
         show_banner

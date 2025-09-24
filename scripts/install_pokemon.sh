@@ -54,7 +54,8 @@ install_pokeget() {
     local temp_dir=$(mktemp -d)
     cd "$temp_dir"
     
-    if git clone https://github.com/talwat/pokeget.git 2>/dev/null; then
+    echo -e "${BLUE}[GIT]${NC} git clone https://github.com/talwat/pokeget.git"
+    if git clone https://github.com/talwat/pokeget.git; then
         cd pokeget
         if cargo build --release 2>/dev/null; then
             sudo cp target/release/pokeget /usr/local/bin/
@@ -87,8 +88,8 @@ install_pokemon() {
     # Install Rust if not present (needed for pokeget)
     if ! command -v cargo &> /dev/null; then
         log_info "Устанавливаю Rust для сборки pokeget..."
-        echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm rust"
-        if sudo pacman -S --noconfirm rust; then
+    echo -e "${BLUE}[PACMAN]${NC} sudo pacman -S --noconfirm rust"
+    if sudo pacman -S --noconfirm rust; then
             log_success "Rust установлен"
         else
             log_error "Не удалось установить Rust"
