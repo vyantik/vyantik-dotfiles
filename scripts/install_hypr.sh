@@ -102,8 +102,6 @@ install_hypr() {
     
     # Required packages
     local packages=(
-        "hyprland"
-        "hyprpaper"
         "hyprlock"
         "waybar"
         "rofi"
